@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Mis Gastos"/>
+  <meta name="theme-color" content="#0a0a0a"/>
+  <link rel="manifest" href="manifest.json"/>
+  <title>Mis Gastos</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --bg:#0a0a0a;--s1:#141414;--s2:#1c1c1c;--s3:#242424;
+      --border:#2a2a2a;--border2:#333;
+      --accent:#c8f061;--accent2:#61d4f0;--accent3:#f0a861;
+      --danger:#f06161;--warn:#f0c161;--purple:#b09ff0;
+      --text:#f0ede8;--muted:#666;--muted2:#888;
+      --r:14px;--mono:'DM Mono',monospace;--sans:'Syne',sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overscroll-behavior:none}
+    .app{max-width:430px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
+
+    .nav{display:flex;background:var(--s1);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;padding:0 4px}
+    .nb{flex:1;padding:12px 2px 10px;background:transparent;border:none;color:var(--muted2);font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px}
+    .nb svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .nb.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+    .screen{display:none;flex:1;padding:16px 14px 100px;overflow-y:auto}
+    .screen.active{display:block}
+
+    .pg-title{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
+    .pg-sub{font-size:12px;color:var(--muted2);font-family:var(--mono)}
+
+    .card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+    .card-title{font-size:10px;font-family:var(--mono);color:var(--muted2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}
+
+    .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+    .metric{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+    .metric-lbl{font-size:10px;font-family:var(--mono);color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+    .metric-val{font-size:20px;font-weight:700;letter-spacing:-.02em}
+    .metric-sub{font-size:11px;color:var(--muted2);font-family:var(--mono);margin-top:3px}
+
+    .alert{border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;font-family:var(--mono);border:1px solid}
+    .a-ok{background:#0f1f08;color:var(--accent);border-color:#1e3f10}
+    .a-warn{background:#201a08;color:var(--warn);border-color:#403010}
+    .a-danger{background:#200808;color:var(--danger);border-color:#401010}
+
+    .ei{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+    .ei:last-child{border-bottom:none;padding-bottom:0}
+    .ei-name{font-size:14px;font-weight:600}
+    .ei-meta{font-size:11px;color:var(--muted2);font-family:var(--mono);margin-top:3px;display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+    .ei-amt{font-size:15px;font-weight:700;font-family:var(--mono);color:var(--accent);white-space:nowrap}
+    .badge{font-size:10px;padding:2px 7px;border-radius:99px;font-family:var(--mono)}
+    .b-bcp{background:#0d1f35;color:var(--accent2)}
+    .b-deb{background:#0d2010;color:var(--accent)}
+    .b-yape{background:#1a1030;color:var(--purple)}
+    .b-efe{background:#202018;color:var(--muted2)}
+
+    .prog-row{margin-bottom:12px}
+    .prog-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+    .prog-track{height:6px;background:var(--s3);border-radius:99px;overflow:hidden}
+    .prog-fill{height:100%;border-radius:99px;transition:width .4s}
+
+    .fg{margin-bottom:13px}
+    .fl{font-size:11px;font-family:var(--mono);color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px}
+    input[type=text],input[type=number],select{
+      width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:10px;
+      padding:11px 13px;font-size:15px;color:var(--text);font-family:var(--sans);
+      outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none
+    }
+    input:focus,select:focus{border-color:var(--accent)}
+    select option{background:#1c1c1c}
+
+    .btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:var(--sans);cursor:pointer;transition:all .15s;letter-spacing:-.01em}
+    .btn-p{background:var(--accent);color:#0a0a0a}
+    .btn-p:active{transform:scale(.97)}
+    .btn-s{background:var(--s2);color:var(--text);border:1px solid var(--border2);margin-top:10px}
+    .btn-danger{background:#200808;color:var(--danger);border:1px solid #401010;margin-top:10px}
+
+    .toast{display:none;background:#0f1f08;color:var(--accent);border:1px solid #1e3f10;border-radius:10px;padding:11px 14px;font-size:13px;font-family:var(--mono);margin-bottom:14px;align-items:center;gap:8px}
+    .toast.show{display:flex}
+
+    .week-bar{display:flex;align-items:flex-end;gap:6px;height:80px;margin:12px 0}
+    .wbar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .wbar-fill{width:100%;background:var(--accent);border-radius:4px 4px 0 0;min-height:3px;transition:height .4s}
+    .wbar-lbl{font-size:10px;color:var(--muted2);font-family:var(--mono)}
+
+    .budget-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+    .budget-row:last-child{border-bottom:none}
+    .budget-cat{flex:1;font-size:13px}
+    .budget-input{width:90px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);font-family:var(--mono);text-align:right;outline:none}
+    .budget-input:focus{border-color:var(--accent)}
+
+    .step-row{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
+    .step-n{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#0a0a0a;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+    .step-txt{font-size:13px;color:var(--text);line-height:1.7}
+    .step-txt code{background:var(--s3);padding:1px 6px;border-radius:5px;font-family:var(--mono);font-size:12px;color:var(--accent2)}
+    .step-txt strong{color:var(--accent)}
+    .code-block{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px;font-family:var(--mono);font-size:11px;color:var(--text);line-height:1.8;word-break:break-all;white-space:pre-wrap;margin-bottom:10px;overflow-x:auto}
+
+    .empty{text-align:center;padding:28px 0;color:var(--muted2);font-size:13px;font-family:var(--mono)}
+    .empty-icon{font-size:30px;margin-bottom:8px}
+
+    .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+    .dot-ok{background:var(--accent)}
+    .dot-no{background:var(--muted)}
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- NAV -->
+  <nav class="nav">
+    <button class="nb active" onclick="goTab('home',this)">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Inicio
+    </button>
+    <button class="nb" onclick="goTab('nuevo',this)">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nuevo
+    </button>
+    <button class="nb" onclick="goTab('resumen',this)">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Resumen
+    </button>
+    <button class="nb" onclick="goTab('sheets',this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      Sheets
+    </button>
+    <button class="nb" onclick="goTab('config',this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Config
+    </button>
+  </nav>
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <div style="margin-bottom:18px">
+      <div class="pg-title">Mis Gastos 💰</div>
+      <div class="pg-sub" id="fecha-home"></div>
+    </div>
+
+    <div id="bcp-alert" class="alert a-ok">✓ Calculando...</div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-lbl">Mes actual</div>
+        <div class="metric-val" style="color:var(--accent)" id="h-mes">S/ 0</div>
+        <div class="metric-sub" id="h-count">0 gastos</div>
+      </div>
+      <div class="metric">
+        <div class="metric-lbl">Ciclo BCP</div>
+        <div class="metric-val" style="color:var(--accent2)" id="h-bcp">S/ 0</div>
+        <div class="metric-sub">BCP Crédito</div>
+      </div>
+      <div class="metric">
+        <div class="metric-lbl">Ahorro est.</div>
+        <div class="metric-val" id="h-ahorro" style="color:var(--accent)">S/ —</div>
+        <div class="metric-sub" id="h-ahorro-sub">configura ingreso</div>
+      </div>
+      <div class="metric">
+        <div class="metric-lbl">Meta ahorro</div>
+        <div class="metric-val" id="h-meta-pct" style="color:var(--purple)">—%</div>
+        <div class="metric-sub" id="h-meta-lbl">sin objetivo</div>
+      </div>
+    </div>
+
+    <!-- SAVINGS RING -->
+    <div class="card" id="card-ring" style="display:none">
+      <div class="card-title">Objetivo de ahorro</div>
+      <div style="display:flex;justify-content:center;margin:8px 0 16px">
+        <svg width="130" height="130" viewBox="0 0 130 130">
+          <circle cx="65" cy="65" r="54" fill="none" stroke="#1c1c1c" stroke-width="10"/>
+          <circle id="ring-arc" cx="65" cy="65" r="54" fill="none" stroke="#c8f061" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="339.3"
+            transform="rotate(-90 65 65)" style="transition:stroke-dashoffset .6s"/>
+          <text x="65" y="60" text-anchor="middle" font-family="Syne,sans-serif" font-size="22" font-weight="700" fill="#f0ede8" id="ring-pct">0%</text>
+          <text x="65" y="78" text-anchor="middle" font-family="DM Mono,monospace" font-size="10" fill="#666">de meta</text>
+        </svg>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center">
+        <div>
+          <div style="font-size:11px;color:var(--muted2);font-family:var(--mono)">Ahorrado</div>
+          <div style="font-size:16px;font-weight:700;color:var(--accent)" id="ring-amt">S/ 0</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted2);font-family:var(--mono)">Meta</div>
+          <div style="font-size:16px;font-weight:700;color:var(--purple)" id="ring-meta">S/ 0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUDGET BARS -->
+    <div class="card">
+      <div class="card-title">Presupuesto por categoría</div>
+      <div id="h-budgets"><div class="empty" style="padding:8px 0;font-size:12px">Configura límites en la pestaña Config</div></div>
+    </div>
+
+    <!-- RECENT -->
+    <div class="card">
+      <div class="card-title">Últimos movimientos</div>
+      <div id="h-recientes"><div class="empty"><div class="empty-icon">📭</div>Sin gastos aún</div></div>
+    </div>
+  </div>
+
+  <!-- NUEVO GASTO -->
+  <div class="screen" id="screen-nuevo">
+    <div style="margin-bottom:18px">
+      <div class="pg-title">Nuevo gasto</div>
+      <div class="pg-sub" id="fecha-nuevo"></div>
+    </div>
+    <div class="toast" id="toast-nuevo">✓ Gasto guardado</div>
+    <div class="card">
+      <div class="fg">
+        <label class="fl">¿Qué compraste?</label>
+        <input type="text" id="n-desc" placeholder="Ej: almuerzo, taxi, mercado..."/>
+      </div>
+      <div class="fg">
+        <label class="fl">Monto (S/.)</label>
+        <input type="number" id="n-monto" placeholder="0.00" min="0" step="0.10" inputmode="decimal"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Categoría</label>
+        <select id="n-cat">
+          <option value="">Selecciona...</option>
+          <option>🍔 Alimentación</option>
+          <option>🚌 Transporte</option>
+          <option>🏠 Alquiler / Vivienda</option>
+          <option>💊 Salud</option>
+          <option>🎮 Entretenimiento</option>
+          <option>👕 Ropa</option>
+          <option>📱 Servicios digitales</option>
+          <option>📚 Educación</option>
+          <option>💼 Trabajo / Negocio</option>
+          <option>🎁 Regalos</option>
+          <option>🔧 Otros</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Tarjeta / método de pago</label>
+        <select id="n-tarjeta">
+          <option>BCP Crédito</option>
+          <option>BCP Débito</option>
+          <option>Yape / Plin</option>
+          <option>Efectivo</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Para qué uso</label>
+        <select id="n-uso">
+          <option>Personal</option>
+          <option>Trabajo</option>
+          <option>Compartido</option>
+          <option>Fijo / Necesario</option>
+          <option>Capricho / Gusto</option>
+        </select>
+      </div>
+      <button class="btn btn-p" onclick="guardarGasto()">Guardar gasto</button>
+    </div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="screen" id="screen-resumen">
+    <div style="margin-bottom:18px">
+      <div class="pg-title">Resumen</div>
+      <div class="pg-sub">Semanal · Ciclo BCP · Historial</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Esta semana (últimos 7 días)</div>
+      <div class="week-bar" id="week-bar"></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px">
+        <span style="color:var(--muted2);font-family:var(--mono)">Total semana</span>
+        <span style="font-weight:700;font-family:var(--mono);color:var(--accent)" id="week-total">S/ 0</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Ciclo BCP actual (25 → 12)</div>
+      <div style="font-size:11px;color:var(--muted2);font-family:var(--mono);margin-bottom:10px" id="bcp-info"></div>
+      <div id="bcp-cats"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Por método de pago (mes)</div>
+      <div id="pago-bars"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Historial completo</div>
+      <div id="hist-list"><div class="empty"><div class="empty-icon">📭</div>Sin gastos</div></div>
+    </div>
+  </div>
+
+  <!-- SHEETS -->
+  <div class="screen" id="screen-sheets">
+    <div style="margin-bottom:18px">
+      <div class="pg-title">Google Sheets</div>
+      <div class="pg-sub">Exporta todos tus gastos</div>
+    </div>
+
+    <!-- STATUS -->
+    <div class="card">
+      <div class="card-title">Estado de conexión</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span class="status-dot" id="status-dot" style="background:var(--muted)"></span>
+        <span style="font-size:13px;font-family:var(--mono)" id="status-txt">Sin configurar</span>
+      </div>
+      <div class="fg">
+        <label class="fl">URL de tu Apps Script</label>
+        <input type="text" id="s-url" placeholder="https://script.google.com/macros/s/..."/>
+      </div>
+      <button class="btn btn-p" onclick="guardarUrl()">Guardar URL</button>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="card">
+      <div class="card-title">Exportar gastos</div>
+      <div style="font-size:13px;color:var(--muted2);font-family:var(--mono);margin-bottom:14px;line-height:1.7">
+        Tienes <strong style="color:var(--text)" id="total-gastos-count">0</strong> gastos guardados localmente.<br>
+        Al exportar, se envían todos a tu Google Sheets.
+      </div>
+      <button class="btn btn-p" onclick="exportarTodo()">Exportar todos a Sheets</button>
+      <div id="export-msg" style="font-size:12px;color:var(--muted2);font-family:var(--mono);margin-top:10px;text-align:center;line-height:1.6"></div>
+    </div>
+
+    <!-- INSTRUCCIONES -->
+    <div class="card">
+      <div class="card-title">Cómo configurar (paso a paso)</div>
+
+      <div class="step-row">
+        <div class="step-n">1</div>
+        <div class="step-txt">
+          Abre <strong>Google Sheets</strong> en tu computadora o celular y crea una planilla nueva. Nómbrala <code>Mis Gastos 2025</code>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-n">2</div>
+        <div class="step-txt">
+          En la <strong>fila 1</strong> escribe estos encabezados exactamente (uno por celda, de A a G):<br><br>
+          <code>Fecha</code> · <code>Descripción</code> · <code>Monto</code> · <code>Categoría</code> · <code>Tarjeta</code> · <code>Uso</code> · <code>Ciclo BCP</code>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-n">3</div>
+        <div class="step-txt">
+          En el menú superior ve a <strong>Extensiones → Apps Script</strong>. Se abre una ventana nueva.
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-n">4</div>
+        <div class="step-txt">
+          Borra todo lo que aparece en el editor y pega el siguiente código:
+        </div>
+      </div>
+
+      <div class="code-block" id="apps-script-code">function doPost(e) {
+  var sheet = SpreadsheetApp
+    .getActiveSpreadsheet()
+    .getActiveSheet();
+
+  var data = JSON.parse(e.postData.contents);
+
+  sheet.appendRow([
+    data.fecha,
+    data.descripcion,
+    data.monto,
+    data.categoria,
+    data.tarjeta,
+    data.uso,
+    data.cicloBCP
+  ]);
+
+  return ContentService
+    .createTextOutput(
+      JSON.stringify({ ok: true })
+    )
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doGet(e) {
+  return ContentService
+    .createTextOutput("OK")
+    .setMimeType(ContentService.MimeType.TEXT);
+}</div>
+      <button class="btn btn-s" onclick="copiarCodigo()" style="margin-bottom:14px">Copiar código</button>
+
+      <div class="step-row">
+        <div class="step-n">5</div>
+        <div class="step-txt">
+          Haz clic en el botón azul <strong>Guardar</strong> (ícono de disco) o presiona <code>Ctrl+S</code>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-n">6</div>
+        <div class="step-txt">
+          Haz clic en <strong>Implementar → Nueva implementación</strong><br><br>
+          — Tipo: <code>Aplicación web</code><br>
+          — Ejecutar como: <code>Yo (tu correo)</code><br>
+          — Quién tiene acceso: <code>Cualquier persona</code><br><br>
+          Clic en <strong>Implementar</strong>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-n">7</div>
+        <div class="step-txt">
+          Te pedirá <strong>autorizar permisos</strong>. Haz clic en "Autorizar acceso" → elige tu cuenta de Google → haz clic en "Avanzado" → "Ir a (nombre del proyecto)" → "Permitir"
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-n">8</div>
+        <div class="step-txt">
+          Copia la <strong>URL de la aplicación web</strong> que aparece (empieza con <code>https://script.google.com/macros/s/...</code>) y pégala arriba en "URL de tu Apps Script"
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-n">9</div>
+        <div class="step-txt">
+          ¡Listo! Haz clic en <strong>Exportar todos a Sheets</strong> y tus gastos aparecerán en la planilla automáticamente. Cada nuevo gasto que registres se enviará solo.
+        </div>
+      </div>
+    </div>
+
+    <!-- TIP FORMATO -->
+    <div class="card">
+      <div class="card-title">💡 Tip — dale formato a tu planilla</div>
+      <div style="font-size:13px;color:var(--muted2);line-height:1.8">
+        Después de exportar, en Google Sheets puedes:<br><br>
+        — Seleccionar la columna C (Monto) → Formato → Número → Moneda peruana<br>
+        — Seleccionar toda la fila 1 → ponerla en negrita<br>
+        — Insertar → Gráfico → para ver tus gastos en torta o barras<br>
+        — Datos → Filtrar → para filtrar por categoría o tarjeta
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="screen" id="screen-config">
+    <div style="margin-bottom:18px">
+      <div class="pg-title">Configuración</div>
+      <div class="pg-sub">Ingreso, ahorro y presupuestos</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Mis ingresos y metas</div>
+      <div class="fg">
+        <label class="fl">Ingreso mensual (S/.)</label>
+        <input type="number" id="cfg-ingreso" placeholder="Ej: 2500" inputmode="decimal"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Objetivo de ahorro mensual (S/.)</label>
+        <input type="number" id="cfg-objetivo" placeholder="Ej: 500" inputmode="decimal"/>
+      </div>
+      <button class="btn btn-p" onclick="guardarCfg()">Guardar</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Límite mensual por categoría (S/.)</div>
+      <div style="font-size:12px;color:var(--muted2);font-family:var(--mono);margin-bottom:12px">Deja en blanco las que no quieras limitar</div>
+      <div id="budget-editor"></div>
+      <button class="btn btn-p" style="margin-top:14px" onclick="guardarBudgets()">Guardar presupuestos</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Datos locales</div>
+      <div style="font-size:13px;color:var(--muted2);font-family:var(--mono);margin-bottom:12px" id="cfg-count">0 gastos guardados</div>
+      <button class="btn btn-danger" onclick="borrarTodo()">⚠ Borrar todos los gastos</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var G = JSON.parse(localStorage.getItem('mg3') || '[]');
+var CFG = JSON.parse(localStorage.getItem('mg3cfg') || '{}');
+var BUD = JSON.parse(localStorage.getItem('mg3bud') || '{}');
+var SURL = localStorage.getItem('mg3url') || '';
+
+var CATS = ['🍔 Alimentación','🚌 Transporte','🏠 Alquiler / Vivienda',
+  '💊 Salud','🎮 Entretenimiento','👕 Ropa','📱 Servicios digitales',
+  '📚 Educación','💼 Trabajo / Negocio','🎁 Regalos','🔧 Otros'];
+
+var COLORS = ['#c8f061','#61d4f0','#f0a861','#f06161','#b09ff0',
+  '#f0c161','#61f0b0','#f09061','#90c8f0','#f061b0','#888'];
+
+function save(){ localStorage.setItem('mg3', JSON.stringify(G)) }
+function fmt(n){ return 'S/ ' + parseFloat(n).toFixed(2) }
+function pad(n){ return n < 10 ? '0'+n : ''+n }
+
+function cicloBCP(fecha){
+  var d=new Date(fecha), dia=d.getDate(), m=d.getMonth(), y=d.getFullYear();
+  if(dia>=25){
+    var nm=m+1, ny=y; if(nm>11){nm=0;ny++}
+    return pad(25)+'/'+pad(m+1)+'/'+y+' → 12/'+pad(nm+1)+'/'+ny;
+  } else {
+    var pm=m-1, py=y; if(pm<0){pm=11;py--}
+    return pad(25)+'/'+pad(pm+1)+'/'+py+' → 12/'+pad(m+1)+'/'+y;
+  }
+}
+
+function diasAlCierre(){
+  var h=new Date(), d=h.getDate(), m=h.getMonth(), y=h.getFullYear();
+  var c = d>=25 ? new Date(y,m+1,12) : d<=12 ? new Date(y,m,12) : new Date(y,m,25);
+  return Math.ceil((c-h)/86400000);
+}
+
+function badgeCls(t){
+  if(t==='BCP Crédito') return 'b-bcp';
+  if(t==='BCP Débito') return 'b-deb';
+  if(t==='Yape / Plin') return 'b-yape';
+  return 'b-efe';
+}
+
+function getMes(){ var h=new Date(); return {m:h.getMonth(), y:h.getFullYear()} }
+function gastosDelMes(){
+  var {m,y}=getMes();
+  return G.filter(function(g){ var d=new Date(g.fecha); return d.getMonth()===m&&d.getFullYear()===y });
+}
+
+// ── NAVEGACIÓN ──────────────────────────────────────────────────
+function goTab(name, btn){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active') });
+  document.querySelectorAll('.nb').forEach(function(b){ b.classList.remove('active') });
+  document.getElementById('screen-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='home') renderHome();
+  if(name==='resumen') renderResumen();
+  if(name==='sheets') renderSheets();
+  if(name==='config') renderConfig();
+  if(name==='nuevo'){
+    var h=new Date();
+    document.getElementById('fecha-nuevo').textContent = h.toLocaleDateString('es-PE',{weekday:'long',day:'numeric',month:'long'});
+  }
+}
+
+// ── HOME ────────────────────────────────────────────────────────
+function renderHome(){
+  var h=new Date();
+  document.getElementById('fecha-home').textContent = h.toLocaleDateString('es-PE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Alerta BCP
+  var dias=diasAlCierre();
+  var al=document.getElementById('bcp-alert');
+  if(dias<=3){ al.className='alert a-danger'; al.textContent='⚠ Cierre BCP en '+dias+' día(s). ¡Revisa tus gastos!' }
+  else if(dias<=7){ al.className='alert a-warn'; al.textContent='● Cierre BCP en '+dias+' días. Mantente atento.' }
+  else{ al.className='alert a-ok'; al.textContent='✓ Próximo cierre BCP en '+dias+' días.' }
+
+  // Totales
+  var {m,y}=getMes();
+  var cicloHoy=cicloBCP(h.toISOString());
+  var gmes=gastosDelMes();
+  var tMes=gmes.reduce(function(a,g){return a+g.monto},0)+550;
+  var tBCP=G.filter(function(g){return g.cicloBCP===cicloHoy&&g.tarjeta==='BCP Crédito'}).reduce(function(a,g){return a+g.monto},0);
+
+  document.getElementById('h-mes').textContent=fmt(tMes);
+  document.getElementById('h-bcp').textContent=fmt(tBCP);
+  document.getElementById('h-count').textContent=(gmes.length+1)+' gastos';
+
+  // Ahorro
+  var ingreso=parseFloat(CFG.ingreso||0);
+  var objetivo=parseFloat(CFG.objetivo||0);
+  if(ingreso>0){
+    var ahorro=ingreso-tMes;
+    document.getElementById('h-ahorro').textContent=fmt(Math.max(0,ahorro));
+    document.getElementById('h-ahorro').style.color=ahorro>=0?'var(--accent)':'var(--danger)';
+    document.getElementById('h-ahorro-sub').textContent=ahorro>=0?'disponible':'en déficit';
+  } else {
+    document.getElementById('h-ahorro').textContent='S/ —';
+    document.getElementById('h-ahorro-sub').textContent='configura ingreso';
+  }
+
+  // Ring
+  if(objetivo>0&&ingreso>0){
+    var ahorro2=Math.max(0,ingreso-tMes);
+    var pct=Math.min(100,Math.round(ahorro2/objetivo*100));
+    document.getElementById('h-meta-pct').textContent=pct+'%';
+    document.getElementById('h-meta-lbl').textContent='de S/'+objetivo.toFixed(0)+' meta';
+    document.getElementById('card-ring').style.display='block';
+    var circ=339.3;
+    document.getElementById('ring-arc').setAttribute('stroke-dashoffset',(circ*(1-pct/100)).toFixed(1));
+    document.getElementById('ring-arc').setAttribute('stroke',pct>=100?'var(--accent2)':'#c8f061');
+    document.getElementById('ring-pct').textContent=pct+'%';
+    document.getElementById('ring-amt').textContent=fmt(ahorro2);
+    document.getElementById('ring-meta').textContent=fmt(objetivo);
+  } else {
+    document.getElementById('card-ring').style.display='none';
+    document.getElementById('h-meta-pct').textContent='—%';
+    document.getElementById('h-meta-lbl').textContent='sin objetivo';
+  }
+
+  // Presupuestos
+  var cats={};
+  gmes.forEach(function(g){ cats[g.categoria]=(cats[g.categoria]||0)+g.monto });
+  cats['🏠 Alquiler / Vivienda']=(cats['🏠 Alquiler / Vivienda']||0)+550;
+  var hasBud=Object.keys(BUD).filter(function(k){return parseFloat(BUD[k])>0}).length>0;
+  var bEl=document.getElementById('h-budgets');
+  if(!hasBud){
+    bEl.innerHTML='<div class="empty" style="padding:8px 0;font-size:12px">Configura límites en la pestaña Config</div>';
+  } else {
+    bEl.innerHTML=Object.keys(BUD).filter(function(k){return parseFloat(BUD[k])>0}).map(function(cat,i){
+      var gasto=cats[cat]||0;
+      var lim=parseFloat(BUD[cat]);
+      var pct=Math.min(110,Math.round(gasto/lim*100));
+      var over=pct>100;
+      var color=over?'var(--danger)':(pct>75?'var(--warn)':'var(--accent)');
+      return '<div class="prog-row"><div class="prog-top"><span style="font-size:12px">'+cat+'</span><span style="font-family:var(--mono);font-size:11px;color:'+(over?'var(--danger)':'var(--muted2)')+'">'+fmt(gasto)+' / '+fmt(lim)+'</span></div><div class="prog-track"><div class="prog-fill" style="width:'+Math.min(100,pct)+'%;background:'+color+'"></div></div></div>';
+    }).join('');
+  }
+
+  // Recientes
+  var rec=G.slice(-6).reverse();
+  var rEl=document.getElementById('h-recientes');
+  rEl.innerHTML=rec.length?rec.map(function(g){
+    var fd=new Date(g.fecha).toLocaleDateString('es-PE',{day:'numeric',month:'short'});
+    return '<div class="ei"><div><div class="ei-name">'+g.descripcion+'</div><div class="ei-meta"><span>'+fd+'</span><span class="badge '+badgeCls(g.tarjeta)+'">'+g.tarjeta+'</span><span>'+g.categoria+'</span></div></div><div class="ei-amt">'+fmt(g.monto)+'</div></div>';
+  }).join(''):'<div class="empty"><div class="empty-icon">📭</div>Sin gastos aún</div>';
+}
+
+// ── NUEVO GASTO ─────────────────────────────────────────────────
+function guardarGasto(){
+  var desc=document.getElementById('n-desc').value.trim();
+  var monto=parseFloat(document.getElementById('n-monto').value);
+  var cat=document.getElementById('n-cat').value;
+  var tarjeta=document.getElementById('n-tarjeta').value;
+  var uso=document.getElementById('n-uso').value;
+  if(!desc||isNaN(monto)||monto<=0||!cat){ alert('Completa todos los campos obligatorios.'); return }
+  var ahora=new Date().toISOString();
+  var g={fecha:ahora,descripcion:desc,monto:monto,categoria:cat,tarjeta:tarjeta,uso:uso,cicloBCP:cicloBCP(ahora)};
+  G.push(g); save();
+  if(SURL) enviar(g);
+  document.getElementById('n-desc').value='';
+  document.getElementById('n-monto').value='';
+  document.getElementById('n-cat').value='';
+  var t=document.getElementById('toast-nuevo');
+  t.classList.add('show'); setTimeout(function(){ t.classList.remove('show') },2200);
+}
+
+// ── RESUMEN ─────────────────────────────────────────────────────
+function renderResumen(){
+  var hoy=new Date();
+  var dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var semana=[];
+  for(var i=6;i>=0;i--){
+    var d=new Date(hoy); d.setDate(hoy.getDate()-i);
+    var key=d.toISOString().slice(0,10);
+    var tot=G.filter(function(g){return g.fecha.slice(0,10)===key}).reduce(function(a,g){return a+g.monto},0);
+    semana.push({lbl:dias[d.getDay()],tot:tot,isHoy:i===0});
+  }
+  var maxW=Math.max.apply(null,semana.map(function(s){return s.tot}).concat([1]));
+  document.getElementById('week-total').textContent=fmt(semana.reduce(function(a,s){return a+s.tot},0));
+  document.getElementById('week-bar').innerHTML=semana.map(function(s){
+    var h=Math.max(4,Math.round(s.tot/maxW*72));
+    return '<div class="wbar-col"><div class="wbar-fill" style="height:'+h+'px;background:'+(s.isHoy?'var(--accent2)':'var(--accent)')+'"></div><div class="wbar-lbl">'+s.lbl+'</div></div>';
+  }).join('');
+
+  // Ciclo BCP
+  var cicloHoy=cicloBCP(hoy.toISOString());
+  var bcpG=G.filter(function(g){return g.cicloBCP===cicloHoy});
+  document.getElementById('bcp-info').textContent=cicloHoy+' · '+bcpG.length+' gastos · Total: '+fmt(bcpG.reduce(function(a,g){return a+g.monto},0));
+  var bcpCats={};
+  bcpG.forEach(function(g){bcpCats[g.categoria]=(bcpCats[g.categoria]||0)+g.monto});
+  var maxB=Math.max.apply(null,Object.values(bcpCats).concat([1]));
+  document.getElementById('bcp-cats').innerHTML=Object.keys(bcpCats).length?Object.keys(bcpCats).map(function(c,i){
+    var p=Math.round(bcpCats[c]/maxB*100);
+    return '<div class="prog-row"><div class="prog-top"><span style="font-size:12px">'+c+'</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted2)">'+fmt(bcpCats[c])+'</span></div><div class="prog-track"><div class="prog-fill" style="width:'+p+'%;background:'+COLORS[i%COLORS.length]+'"></div></div></div>';
+  }).join(''):'<div class="empty" style="padding:8px 0">Sin gastos en este ciclo</div>';
+
+  // Por pago
+  var {m,y}=getMes();
+  var pagos={};
+  G.filter(function(g){var d=new Date(g.fecha);return d.getMonth()===m&&d.getFullYear()===y}).forEach(function(g){pagos[g.tarjeta]=(pagos[g.tarjeta]||0)+g.monto});
+  var maxP=Math.max.apply(null,Object.values(pagos).concat([1]));
+  document.getElementById('pago-bars').innerHTML=Object.keys(pagos).length?Object.keys(pagos).map(function(p,i){
+    var pct=Math.round(pagos[p]/maxP*100);
+    return '<div class="prog-row"><div class="prog-top"><span style="font-size:12px">'+p+'</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted2)">'+fmt(pagos[p])+'</span></div><div class="prog-track"><div class="prog-fill" style="width:'+pct+'%;background:'+COLORS[i%COLORS.length]+'"></div></div></div>';
+  }).join(''):'<div class="empty" style="padding:8px 0">Sin datos</div>';
+
+  // Historial
+  var hEl=document.getElementById('hist-list');
+  hEl.innerHTML=G.length?G.slice().reverse().map(function(g){
+    var fd=new Date(g.fecha).toLocaleDateString('es-PE',{day:'numeric',month:'short',year:'numeric'});
+    return '<div class="ei"><div><div class="ei-name">'+g.descripcion+'</div><div class="ei-meta"><span>'+fd+'</span><span class="badge '+badgeCls(g.tarjeta)+'">'+g.tarjeta+'</span><span>'+g.categoria+'</span><span style="color:var(--muted)">'+g.uso+'</span></div></div><div class="ei-amt">'+fmt(g.monto)+'</div></div>';
+  }).join(''):'<div class="empty"><div class="empty-icon">📭</div>Sin gastos</div>';
+}
+
+// ── SHEETS ──────────────────────────────────────────────────────
+function renderSheets(){
+  document.getElementById('total-gastos-count').textContent=G.length;
+  if(SURL){
+    document.getElementById('s-url').value=SURL;
+    document.getElementById('status-dot').style.background='var(--accent)';
+    document.getElementById('status-txt').textContent='Conectado';
+  } else {
+    document.getElementById('status-dot').style.background='var(--muted)';
+    document.getElementById('status-txt').textContent='Sin configurar';
+  }
+}
+
+function guardarUrl(){
+  var u=document.getElementById('s-url').value.trim();
+  if(!u.startsWith('https://')){alert('URL inválida. Debe empezar con https://');return}
+  SURL=u; localStorage.setItem('mg3url',u);
+  document.getElementById('status-dot').style.background='var(--accent)';
+  document.getElementById('status-txt').textContent='Conectado';
+  alert('✓ URL guardada correctamente.');
+}
+
+function copiarCodigo(){
+  var txt=document.getElementById('apps-script-code').innerText;
+  navigator.clipboard.writeText(txt).then(function(){ alert('✓ Código copiado al portapapeles') });
+}
+
+function enviar(g){
+  if(!SURL)return;
+  fetch(SURL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(g)}).catch(function(){});
+}
+
+function exportarTodo(){
+  if(!SURL){alert('Primero guarda la URL de tu Apps Script.');return}
+  if(G.length===0){alert('No tienes gastos guardados aún.');return}
+  var msg=document.getElementById('export-msg');
+  msg.textContent='Enviando '+G.length+' gastos...';
+  var ok=0, fail=0;
+  var total=G.length;
+  G.forEach(function(g){
+    fetch(SURL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(g)})
+      .then(function(){ ok++; if(ok+fail===total) finalMsg(ok,fail) })
+      .catch(function(){ fail++; if(ok+fail===total) finalMsg(ok,fail) });
+  });
+}
+
+function finalMsg(ok,fail){
+  var msg=document.getElementById('export-msg');
+  if(fail===0) msg.innerHTML='✓ '+ok+' gastos enviados a Google Sheets.<br>Revisa tu planilla.';
+  else msg.innerHTML='⚠ '+ok+' enviados, '+fail+' fallaron.<br>Verifica tu URL e intenta de nuevo.';
+}
+
+// ── CONFIG ──────────────────────────────────────────────────────
+function renderConfig(){
+  if(CFG.ingreso) document.getElementById('cfg-ingreso').value=CFG.ingreso;
+  if(CFG.objetivo) document.getElementById('cfg-objetivo').value=CFG.objetivo;
+  document.getElementById('cfg-count').textContent=G.length+' gastos guardados localmente';
+  document.getElementById('budget-editor').innerHTML=CATS.map(function(cat){
+    return '<div class="budget-row"><div class="budget-cat">'+cat+'</div><input class="budget-input" type="number" data-cat="'+cat+'" value="'+(BUD[cat]||'')+'" placeholder="—" inputmode="decimal"/></div>';
+  }).join('');
+}
+
+function guardarCfg(){
+  CFG.ingreso=document.getElementById('cfg-ingreso').value;
+  CFG.objetivo=document.getElementById('cfg-objetivo').value;
+  localStorage.setItem('mg3cfg',JSON.stringify(CFG));
+  alert('✓ Configuración guardada');
+}
+
+function guardarBudgets(){
+  document.querySelectorAll('.budget-input').forEach(function(inp){
+    var cat=inp.getAttribute('data-cat');
+    var val=parseFloat(inp.value);
+    if(val>0) BUD[cat]=val; else delete BUD[cat];
+  });
+  localStorage.setItem('mg3bud',JSON.stringify(BUD));
+  alert('✓ Presupuestos guardados');
+}
+
+function borrarTodo(){
+  if(!confirm('¿Seguro? Esto borra TODOS los gastos locales. No se puede deshacer.')) return;
+  G=[]; save(); alert('✓ Gastos borrados');
+  renderConfig();
+}
+
+// ── INIT ────────────────────────────────────────────────────────
+renderHome();
+</script>
+</body>
+</html>
